@@ -64,7 +64,7 @@ public class Configuration {
         conf.put(DefaultConfSettings.P_DROP_TRANSACTION.name(), "0.0");
         conf.put(DefaultConfSettings.P_SELECT_MILESTONE_CHILD.name(), "0.7");
         conf.put(DefaultConfSettings.P_SEND_MILESTONE.name(), "0.02");
-        conf.put(DefaultConfSettings.MAIN_DB.name(), "rocksdb");
+        conf.put(DefaultConfSettings.MAIN_DB.name(), "memdb");
         conf.put(DefaultConfSettings.EXPORT.name(), "false");
     }
 
