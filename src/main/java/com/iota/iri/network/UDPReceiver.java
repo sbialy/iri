@@ -75,10 +75,10 @@ public class UDPReceiver {
                     if (receivingPacket.getLength() == (TRANSACTION_PACKET_SIZE + Replicator.CRC32_BYTES)) {
 
                         // Checksum validation 1st
-                        byte [] receivedChecksum = new byte[Replicator.CRC32_BYTES];
                         CRC32 crc32 = new CRC32();                                        
                         crc32.update(receivingPacket.getData(),0,Node.TRANSACTION_PACKET_SIZE);
                         String crc32_string = Long.toHexString(crc32.getValue());
+                        log.info("checksum received="+crc32_string);
                         while (crc32_string.length() < Replicator.CRC32_BYTES) crc32_string = "0" + crc32_string;
                         byte [] expectedChecksum = crc32_string.getBytes();
                         boolean match = true;
