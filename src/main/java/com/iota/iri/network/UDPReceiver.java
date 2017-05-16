@@ -26,8 +26,8 @@ public class UDPReceiver {
     private static final Logger log = LoggerFactory.getLogger(UDPReceiver.class);
 
     private static final UDPReceiver instance = new UDPReceiver();
-    private final DatagramPacket receivingPacket = new DatagramPacket(new byte[TRANSACTION_PACKET_SIZE],
-            TRANSACTION_PACKET_SIZE);
+    private final DatagramPacket receivingPacket = new DatagramPacket(new byte[TRANSACTION_PACKET_SIZE+Replicator.CRC32_BYTES],
+            TRANSACTION_PACKET_SIZE+Replicator.CRC32_BYTES);
 
     private final AtomicBoolean shuttingDown = new AtomicBoolean(false);
 
