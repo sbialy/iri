@@ -14,6 +14,8 @@ import com.iota.iri.TransactionValidator;
 import com.iota.iri.conf.Configuration;
 import com.iota.iri.controllers.*;
 import com.iota.iri.model.Hash;
+import com.iota.iri.network.replicator.Replicator;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.ImmutableTriple;
@@ -53,10 +55,10 @@ public class Node {
     private final ConcurrentSkipListSet<Pair<Hash,Neighbor>> replyQueue = weightQueueHashPair();
 
 
-    private final DatagramPacket sendingPacket = new DatagramPacket(new byte[TRANSACTION_PACKET_SIZE],
-            TRANSACTION_PACKET_SIZE);
-    private final DatagramPacket tipRequestingPacket = new DatagramPacket(new byte[TRANSACTION_PACKET_SIZE],
-            TRANSACTION_PACKET_SIZE);
+    private final DatagramPacket sendingPacket = new DatagramPacket(new byte[TRANSACTION_PACKET_SIZE + Replicator.CRC32_BYTES],
+            TRANSACTION_PACKET_SIZE + Replicator.CRC32_BYTES);
+    private final DatagramPacket tipRequestingPacket = new DatagramPacket(new byte[TRANSACTION_PACKET_SIZE + Replicator.CRC32_BYTES],
+            TRANSACTION_PACKET_SIZE + Replicator.CRC32_BYTES);
 
     private final ExecutorService executor = Executors.newFixedThreadPool(5);
 

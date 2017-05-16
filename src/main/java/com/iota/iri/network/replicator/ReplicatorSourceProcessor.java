@@ -122,8 +122,8 @@ class ReplicatorSourceProcessor implements Runnable {
             offset = 0;
             while (!shutdown) {
 
-                while ( ((count = stream.read(data, offset, (TRANSACTION_PACKET_SIZE - offset + ReplicatorSinkProcessor.CRC32_BYTES))) != -1) 
-                        && (offset < (TRANSACTION_PACKET_SIZE + ReplicatorSinkProcessor.CRC32_BYTES))) {
+                while ( ((count = stream.read(data, offset, (TRANSACTION_PACKET_SIZE - offset + Replicator.CRC32_BYTES))) != -1) 
+                        && (offset < (TRANSACTION_PACKET_SIZE + Replicator.CRC32_BYTES))) {
                     offset += count;
                 }
               
@@ -139,11 +139,11 @@ class ReplicatorSourceProcessor implements Runnable {
                         crc32.update(data[i]);
                     }
                     String crc32_string = Long.toHexString(crc32.getValue());
-                    while (crc32_string.length() < ReplicatorSinkProcessor.CRC32_BYTES) crc32_string = "0"+crc32_string;
+                    while (crc32_string.length() < Replicator.CRC32_BYTES) crc32_string = "0"+crc32_string;
                     byte [] crc32_bytes = crc32_string.getBytes();
                     
                     boolean crcError = false;
-                    for (int i=0; i<ReplicatorSinkProcessor.CRC32_BYTES; i++) {
+                    for (int i=0; i<Replicator.CRC32_BYTES; i++) {
                         if (crc32_bytes[i] != data[TRANSACTION_PACKET_SIZE + i]) {
                             crcError = true;
                             break;

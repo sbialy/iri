@@ -3,6 +3,8 @@ package com.iota.iri.network;
 import com.iota.iri.controllers.TransactionViewModel;
 import com.iota.iri.hash.Curl;
 import com.iota.iri.model.Hash;
+import com.iota.iri.network.replicator.Replicator;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,6 +15,7 @@ import java.net.SocketAddress;
 import java.util.Arrays;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.zip.CRC32;
 
 import static com.iota.iri.network.Node.TRANSACTION_PACKET_SIZE;
 
@@ -69,18 +72,36 @@ public class UDPReceiver {
                 try {
                     socket.receive(receivingPacket);
 
-                    if (receivingPacket.getLength() == TRANSACTION_PACKET_SIZE) {
+                    if (receivingPacket.getLength() == (TRANSACTION_PACKET_SIZE + Replicator.CRC32_BYTES)) {
 
-                        byte[] bytes = Arrays.copyOf(receivingPacket.getData(), receivingPacket.getLength());
-                        SocketAddress address = receivingPacket.getSocketAddress();
+                        // Checksum validation 1st
+                        byte [] receivedChecksum = new byte[Replicator.CRC32_BYTES];
+                        CRC32 crc32 = new CRC32();                                        
+                        crc32.update(receivingPacket.getData(),0,Node.TRANSACTION_PACKET_SIZE);
+                        String crc32_string = Long.toHexString(crc32.getValue());
+                        while (crc32_string.length() < Replicator.CRC32_BYTES) crc32_string = "0" + crc32_string;
+                        byte [] expectedChecksum = crc32_string.getBytes();
+                        boolean match = true;
+                        for (int i=0, j=Node.TRANSACTION_PACKET_SIZE; i<Replicator.CRC32_BYTES; i++, j++) {
+                            if (expectedChecksum[i] != receivingPacket.getData()[j]) {
+                                match = false;
+                                log.info("UDP packet with checksum error received");
+                                break;
+                            }
+                        }
+                        if (match) {
+                            byte[] bytes = Arrays.copyOf(receivingPacket.getData(), receivingPacket.getLength()-Replicator.CRC32_BYTES);
+                            SocketAddress address = receivingPacket.getSocketAddress();
 
-                        processor.submit(() -> Node.instance().preProcessReceivedData(bytes, address, "udp"));
-                        processed++;
-
+                            processor.submit(() -> Node.instance().preProcessReceivedData(bytes, address, "udp"));
+                            processed++;
+                        }
+                        else {
+                            receivingPacket.setLength(TRANSACTION_PACKET_SIZE+Replicator.CRC32_BYTES);
+                        }
                         Thread.yield();
-
                     } else {
-                        receivingPacket.setLength(TRANSACTION_PACKET_SIZE);
+                        receivingPacket.setLength(TRANSACTION_PACKET_SIZE+Replicator.CRC32_BYTES);
                     }
                 } catch (final RejectedExecutionException e) {
                     //no free thread, packet dropped

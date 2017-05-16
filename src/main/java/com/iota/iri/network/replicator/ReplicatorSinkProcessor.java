@@ -20,8 +20,6 @@ class ReplicatorSinkProcessor implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(ReplicatorSinkProcessor.class);
 
     private final TCPNeighbor neighbor;
-    
-    public final static int CRC32_BYTES = 16;
 
     public ReplicatorSinkProcessor(TCPNeighbor neighbor) {
         this.neighbor = neighbor;
@@ -89,7 +87,7 @@ class ReplicatorSinkProcessor implements Runnable {
                                                 CRC32 crc32 = new CRC32();                                        
                                                 crc32.update(message.array());
                                                 String crc32_string = Long.toHexString(crc32.getValue());
-                                                while (crc32_string.length() < CRC32_BYTES) crc32_string = "0"+crc32_string;
+                                                while (crc32_string.length() < Replicator.CRC32_BYTES) crc32_string = "0"+crc32_string;
                                                 out.write(message.array());
                                                 out.write(crc32_string.getBytes());
                                                 out.flush();

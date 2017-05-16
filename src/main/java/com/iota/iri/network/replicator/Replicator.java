@@ -5,6 +5,8 @@ import org.slf4j.LoggerFactory;
 
 public class Replicator {
     
+    public final static int CRC32_BYTES = 12;
+    
     public static final int NUM_THREADS = 32;
     
     private static final Logger log = LoggerFactory.getLogger(Replicator.class);
