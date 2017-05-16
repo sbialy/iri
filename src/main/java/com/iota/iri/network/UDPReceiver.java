@@ -79,11 +79,9 @@ public class UDPReceiver {
                         crc32.update(receivingPacket.getData(),0,Node.TRANSACTION_PACKET_SIZE);
                         String crc32_string = Long.toHexString(crc32.getValue());                        
                         while (crc32_string.length() < Replicator.CRC32_BYTES) crc32_string = "0" + crc32_string;
-                        log.info("checksum received="+crc32_string);
                         byte [] expectedChecksum = crc32_string.getBytes();
                         boolean match = true;
                         for (int i=0, j=Node.TRANSACTION_PACKET_SIZE; i<Replicator.CRC32_BYTES; i++, j++) {
-                            log.info("-"+expectedChecksum[i]+"-"+receivingPacket.getData()[j]);
                             if (expectedChecksum[i] != receivingPacket.getData()[j]) {
                                 match = false;
                                 log.info("UDP packet with checksum error received");

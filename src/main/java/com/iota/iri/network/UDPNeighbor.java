@@ -26,9 +26,8 @@ public class UDPNeighbor extends Neighbor {
             crc32.update(packet.getData(),0,Node.TRANSACTION_PACKET_SIZE);
             String crc32_string = Long.toHexString(crc32.getValue());
             while (crc32_string.length() < Replicator.CRC32_BYTES) crc32_string = "0" + crc32_string;
-            log.info("checksum sent="+crc32_string);
             byte [] crc32_bytes = crc32_string.getBytes();
-            System.arraycopy(packet.getData(), Node.TRANSACTION_PACKET_SIZE, crc32_bytes, 0, Replicator.CRC32_BYTES);
+            System.arraycopy(crc32_bytes, 0, packet.getData(), Node.TRANSACTION_PACKET_SIZE, Replicator.CRC32_BYTES);
             packet.setSocketAddress(getAddress());
             UDPReceiver.instance().send(packet);
             incSentTransactions();
