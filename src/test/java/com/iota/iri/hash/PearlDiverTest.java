@@ -1,5 +1,6 @@
 package com.iota.iri.hash;
 
+import com.iota.iri.Utility;
 import com.iota.iri.controllers.TransactionViewModelTest;
 import com.iota.iri.model.Hash;
 import com.iota.iri.utils.Converter;
@@ -11,6 +12,14 @@ import org.junit.Test;
 public class PearlDiverTest {
 
 	private final static int TRYTE_LENGTH = 2673;
+
+	@Test
+	public void testchecksumFinder() {
+		PearlDiver pearlDiver = new PearlDiver();
+		int[] trits = Utility.getRandomTrits(729);
+		pearlDiver.findChecksum(trits, 242, -1);
+		assertEquals(ISS.checkChecksum(trits), 0);
+	}
 
 	@Test
 	public void testRandomTryteHash() {
@@ -32,8 +41,11 @@ public class PearlDiverTest {
         curl.reset();
         hash = Converter.trytes(hashTrits);
         boolean success = isAllNines(hash.substring(Curl.HASH_LENGTH/3-minWeightMagnitude/3));
-        assertTrue("The hash should have n nines", success);
-
+        i = Curl.HASH_LENGTH;
+        int end = Curl.HASH_LENGTH - minWeightMagnitude;
+        while(i-- > end) {
+            assertEquals(hashTrits[i], 0);
+		}
 	}
 
 	// Remove below comment to test pearlDiver iteratively
@@ -77,4 +89,5 @@ public class PearlDiverTest {
 		}
 		return true;
 	}
+
 }

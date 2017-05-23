@@ -202,6 +202,14 @@ public class ISS {
         return digest;
     }
 
+    public static int checkChecksum(final int[] trits) {
+        Curl curl = new Curl();
+        int[] hash = new int[Curl.HASH_LENGTH];
+        curl.absorb(trits, 0, trits.length);
+        curl.squeeze(hash, 0, hash.length);
+        return Arrays.stream(hash).reduce((a,b) -> a+b).orElse(0);
+    }
+
     public static int[] getMerkleRoot(int[] hash, int[] trits, int offset, int index, int size) {
         for (int i = 0; i < size; i++) {
             final Curl curl = new Curl();
