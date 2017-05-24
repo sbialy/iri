@@ -277,7 +277,7 @@ public class PearlDiver {
      * @param midCurlState the low/hi state array
      * @return
      */
-    private static int checkChecksum(Pair<long[], long[]> midCurlState) {
+    static int checkChecksum(Pair<long[], long[]> midCurlState) {
         Pair<BigInteger[], BigInteger[]> checks = transpose(midCurlState, 0, Curl.HASH_LENGTH);
         int length = checks.low.length;
         int out = -1;
@@ -304,11 +304,11 @@ public class PearlDiver {
      * @param length
      * @return
      */
-    private static Pair<BigInteger[], BigInteger[]> transpose(Pair<long[], long[]> midCurlState, final int offset, final int length) {
+    static Pair<BigInteger[], BigInteger[]> transpose(Pair<long[], long[]> midCurlState, final int offset, final int length) {
         Pair<BigInteger[], BigInteger[]> output = new Pair<>(new BigInteger[Long.BYTES*8], new BigInteger[Long.BYTES*8]);
         for(int j = 0; j < Long.BYTES*8; j++) {
-            output.low[j] = new BigInteger(new byte[length / Long.BYTES + 1]);
-            output.hi[j] = new BigInteger(new byte[length / Long.BYTES + 1]);
+            output.low[j] = new BigInteger(new byte[length]);
+            output.hi[j] = new BigInteger(new byte[length]);
             for(int i = 0; i < length; i++) {
                 if((midCurlState.low[offset + i] & identity[j]) != 0) {
                     output.low[j] = output.low[j].setBit(i);

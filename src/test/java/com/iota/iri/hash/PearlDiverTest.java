@@ -4,9 +4,13 @@ import com.iota.iri.Utility;
 import com.iota.iri.controllers.TransactionViewModelTest;
 import com.iota.iri.model.Hash;
 import com.iota.iri.utils.Converter;
+
+import java.math.BigInteger;
 import java.util.Random;
 import static org.junit.Assert.*;
 
+import com.iota.iri.utils.Pair;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class PearlDiverTest {
@@ -14,10 +18,38 @@ public class PearlDiverTest {
 	private final static int TRYTE_LENGTH = 2673;
 
 	@Test
+	public void testTranspose() {
+	    int offset = 0;
+		int length = 60;
+		long l = 0b0010101010101010101010101010101010101010101010101010101010101010L,
+                h = 0b0101010101010101010101010101010101010101010101010101010101010101L;
+		for(int j = 1; j < length; j++) {
+            Pair<long[], long[]> longPair = new Pair<>(new long[j], new long[j]);
+            for (int i = 0; i < j; i++) {
+                if (i % 2 == 0) {
+                    longPair.low[i] = l;
+                    longPair.hi[i] = h;
+                } else {
+                    longPair.low[i] = h;
+                    longPair.hi[i] = l;
+                }
+            }
+            Pair<BigInteger[], BigInteger[]> p = PearlDiver.transpose(longPair, offset, j);
+            int count = p.low[0].bitCount();
+            Assert.assertEquals(p.hi[0].bitCount(), j/ 2 + (j% 2 == 0 ? 0 : 1));
+            Assert.assertEquals(p.low[0].bitCount(), j/ 2);
+        }
+	}
+
+	@Test
 	public void testchecksumFinder() {
 		PearlDiver pearlDiver = new PearlDiver();
 		int[] trits = Utility.getRandomTrits(729);
-		pearlDiver.findChecksum(trits, 242, -1);
+		int[] lastnine = new int[9];
+        int[] checksum = new int[9];
+        System.arraycopy(lastnine, 0, trits, trits.length - lastnine.length, lastnine.length);
+		pearlDiver.findChecksum(trits, 9, -1);
+        System.arraycopy(trits, trits.length-lastnine.length, checksum, 0, lastnine.length);
 		assertEquals(ISS.checkChecksum(trits), 0);
 	}
 
