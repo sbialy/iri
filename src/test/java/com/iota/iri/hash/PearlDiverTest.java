@@ -43,14 +43,15 @@ public class PearlDiverTest {
 
 	@Test
 	public void testchecksumFinder() {
+	    int checksumLength = 243;
 		PearlDiver pearlDiver = new PearlDiver();
 		int[] trits = Utility.getRandomTrits(729);
-		int[] lastnine = new int[9];
-        int[] checksum = new int[9];
+		int[] lastnine = new int[checksumLength];
+        int[] checksum = new int[checksumLength];
         System.arraycopy(lastnine, 0, trits, trits.length - lastnine.length, lastnine.length);
-		pearlDiver.findChecksum(trits, 9, -1);
+		pearlDiver.findChecksum(trits, checksumLength, -1);
         System.arraycopy(trits, trits.length-lastnine.length, checksum, 0, lastnine.length);
-		assertEquals(ISS.checkChecksum(trits), 0);
+		assertEquals(0, ISS.checkChecksum(trits));
 	}
 
 	@Test
