@@ -323,7 +323,7 @@ public class PearlDiver {
      * @param midCurlState
      * @param offset
      * @param length
-     * @return
+     * @return transposed pair matrix
      */
     static Pair<BigInteger[], BigInteger[]> transpose(Pair<long[], long[]> midCurlState, final int offset, final int length) {
         Pair<BigInteger[], BigInteger[]> output = new Pair<>(new BigInteger[Long.SIZE], new BigInteger[Long.SIZE]);
