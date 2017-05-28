@@ -43,12 +43,12 @@ public class PearlDiverTest {
 
 	@Test
 	public void testchecksumFinder() {
-	    int checksumLength = 27;
-		PearlDiver pearlDiver = new PearlDiver();
-		int numberOfThreads = 1;
-		int[] trits = Utility.getRandomTrits(729);
-		int[] checksum = pearlDiver.findChecksum(trits, checksumLength, numberOfThreads);
-		assertEquals(0, ISS.checkChecksum(trits, checksum));
+        int checksumLength = 27;
+        PearlDiver pearlDiver = new PearlDiver();
+        int numberOfThreads = 1;
+        int[] trits = Utility.getRandomTrits(729);
+        int[] checksum = pearlDiver.findChecksum(trits, checksumLength, numberOfThreads, 243);
+        assertEquals(0, ISS.checkChecksum(trits, checksum));
 	}
 
 	@Test

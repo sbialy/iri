@@ -4,6 +4,7 @@ import com.iota.iri.utils.Converter;
 import com.iota.iri.utils.Pair;
 
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -197,7 +198,7 @@ public class PearlDiver {
         trits.hi[3] = 0b0000000000111111111111111111111111111111111111111111111111111111L;
     }
 
-    public int[] findChecksum(final int[] trits, final int length, int numberOfThreads) {
+    public int[] findChecksum(final int[] trits, final int length, int numberOfThreads, final int sumLength) {
         int rem = trits.length % Curl.HASH_LENGTH;
         int end = trits.length / Curl.HASH_LENGTH;
         if(rem != 0) {
@@ -205,31 +206,32 @@ public class PearlDiver {
         }
 
         Pair<long[], long[]> midCurlState = absorb(trits, end);
-        offset(midCurlState);
-        for(int i = 4; i < length; i++) {
+        for(int i = 0; i < length; i++) {
             midCurlState.hi[i] = HIGH_BITS;
             midCurlState.low[i] = HIGH_BITS;
         }
+        offset(midCurlState);
 
         numberOfThreads = getThreadCount(numberOfThreads);
 
         Thread[] workers = new Thread[numberOfThreads];
-        AtomicInteger state = new AtomicInteger(RUNNING);
-        AtomicInteger topIndex = new AtomicInteger(length);
         int[] checksum = new int[Curl.HASH_LENGTH];
-
-        while(numberOfThreads-- > 0) {
-            workers[numberOfThreads] = new Thread(spawnChecksumFinder(checksum, midCurlState, topIndex, numberOfThreads, syncObj, state));
+        AtomicInteger state = new AtomicInteger(RUNNING);
+        AtomicInteger checksumLength = new AtomicInteger(length);
+        checksum = new int[Curl.HASH_LENGTH];
+        while (numberOfThreads-- > 0) {
+            workers[numberOfThreads] = new Thread(spawnChecksumFinder(checksum, midCurlState, checksumLength, sumLength, numberOfThreads, syncObj, state), "Checksum Finder " + numberOfThreads);
             workers[numberOfThreads].start();
         }
 
         try {
             synchronized (syncObj) {
-                if(state.get() == RUNNING) {
+                if (state.get() == RUNNING) {
                     syncObj.wait();
                 }
             }
         } catch (final InterruptedException e) {
+            state.set(CANCELLED);
             synchronized (syncObj) {
                 state.set(CANCELLED);
             }
@@ -244,11 +246,12 @@ public class PearlDiver {
                 }
             }
         }
+        checksum = Arrays.copyOf(checksum, checksumLength.get());
         return checksum;
     }
 
     private static Runnable spawnChecksumFinder(final int[] out, final Pair<long[], long[]> midCurlState, final AtomicInteger checksumLength,
-                                                final int threadIndex, final Object syncObj, final AtomicInteger state) {
+                                                final int sumLength, final int threadIndex, final Object syncObj, final AtomicInteger state) {
         return () -> {
             int length = checksumLength.get();
             int midLength = length/2;
@@ -269,14 +272,14 @@ public class PearlDiver {
                 System.arraycopy(midCurlStateCopy.hi, 0, curlState.hi, 0, CURL_STATE_LENGTH);
                 transform(curlState.low, curlState.hi, curlScratchpad.low, curlScratchpad.hi);
 
-                int checksumIndex = checkChecksum(midCurlStateCopy, Curl.HASH_LENGTH);
+                int checksumIndex = checkChecksum(curlState, sumLength);
                 if(checksumIndex == -1) continue;
 
                 synchronized (syncObj) {
                     if (state.get() == RUNNING) {
                         state.set(COMPLETED);
-                        System.out.println("FOUND ONE!");
-                        System.arraycopy(Converter.trits(midCurlStateCopy, checksumIndex), 0, out, 0, length);
+                        int[] checksum = Converter.trits(midCurlStateCopy, checksumIndex);
+                        System.arraycopy(checksum, 0, out, 0, out.length);
                         checksumLength.set(length);
                         syncObj.notifyAll();
                     }
@@ -294,21 +297,14 @@ public class PearlDiver {
      * of the low hash is equal to the hi hash.
      * the
      * @param midCurlState the low/hi state array
-     * @return
+     * @return index
      */
     static int checkChecksum(Pair<long[], long[]> midCurlState, final int length) {
         Pair<BigInteger[], BigInteger[]> checks = transpose(midCurlState, 0, length);
         int out = -1;
         for(int i = 0; i < Long.SIZE; i++) {
             if(checks.low[i].bitCount() == checks.hi[i].bitCount()) {
-                out = Long.SIZE-i-1;
-                byte[] hi, lo;
-                hi = new byte[CURL_HASH_LENGTH];
-                lo = new byte[CURL_HASH_LENGTH];
-                for(int j = 0; j < CURL_HASH_LENGTH; j++) {
-                    hi[j] = (byte) (checks.hi[i].testBit(j) ? 1 : 0);
-                    lo[j] = (byte) (checks.low[i].testBit(j) ? 1 : 0);
-                }
+                out = i;
                 break;
             }
         }
