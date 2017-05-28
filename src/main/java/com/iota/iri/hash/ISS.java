@@ -1,5 +1,7 @@
 package com.iota.iri.hash;
 
+import com.iota.iri.utils.Converter;
+
 import java.util.Arrays;
 
 /**
@@ -205,6 +207,8 @@ public class ISS {
     public static int checkChecksum(final int[] trits, final int[] checksum) {
         Curl curl = new Curl();
         int[] hash = new int[Curl.HASH_LENGTH];
+        int[] lengthTrits = Converter.trits(trits.length);
+        curl.absorb(lengthTrits, 0, lengthTrits.length);
         curl.absorb(trits, 0, trits.length);
         curl.absorb(checksum, 0, checksum.length);
         curl.squeeze(hash, 0, hash.length);
