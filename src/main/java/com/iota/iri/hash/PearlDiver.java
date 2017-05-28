@@ -46,7 +46,8 @@ public class PearlDiver {
             state = RUNNING;
         }
 
-        Pair<long[], long[]> midCurl = prepare(transactionTrits, 0);
+        Pair<long[], long[]> midCurl = absorb(transactionTrits, TRANSACTION_LENGTH/CURL_HASH_LENGTH-1);
+        offset(midCurl);
 
         numberOfThreads = getThreadCount(numberOfThreads);
 
@@ -137,12 +138,8 @@ public class PearlDiver {
         return numberOfThreads;
     }
 
-    private static Pair<long[], long[]> prepare(final int[] trits, final int offsetStart) {
-        int rem = trits.length % Curl.HASH_LENGTH;
-        int end = trits.length / Curl.HASH_LENGTH;
-        if(rem == 0) {
-            end--;
-        }
+
+    private static Pair<long[], long[]> absorb(final int[] trits, final int end) {
         final long[] midCurlStateLow = new long[CURL_STATE_LENGTH], midCurlStateHigh = new long[CURL_STATE_LENGTH];
         for (int i = CURL_HASH_LENGTH; i < CURL_STATE_LENGTH; i++) {
 
@@ -156,56 +153,73 @@ public class PearlDiver {
 
             for (int j = 0; j < CURL_HASH_LENGTH; j++) {
 
-                switch (trits[offset++]) {
+                if(offset < trits.length) {
+                    switch (trits[offset++]) {
 
-                    case 0: {
+                        case 0: {
 
-                        midCurlStateLow[j] = 0b1111111111111111111111111111111111111111111111111111111111111111L;
-                        midCurlStateHigh[j] = 0b1111111111111111111111111111111111111111111111111111111111111111L;
+                            midCurlStateLow[j] = 0b1111111111111111111111111111111111111111111111111111111111111111L;
+                            midCurlStateHigh[j] = 0b1111111111111111111111111111111111111111111111111111111111111111L;
 
-                    } break;
+                        }
+                        break;
 
-                    case 1: {
+                        case 1: {
 
-                        midCurlStateLow[j] = 0b0000000000000000000000000000000000000000000000000000000000000000L;
-                        midCurlStateHigh[j] = 0b1111111111111111111111111111111111111111111111111111111111111111L;
+                            midCurlStateLow[j] = 0b0000000000000000000000000000000000000000000000000000000000000000L;
+                            midCurlStateHigh[j] = 0b1111111111111111111111111111111111111111111111111111111111111111L;
 
-                    } break;
+                        }
+                        break;
 
-                    default: {
+                        default: {
 
-                        midCurlStateLow[j] = 0b1111111111111111111111111111111111111111111111111111111111111111L;
-                        midCurlStateHigh[j] = 0b0000000000000000000000000000000000000000000000000000000000000000L;
+                            midCurlStateLow[j] = 0b1111111111111111111111111111111111111111111111111111111111111111L;
+                            midCurlStateHigh[j] = 0b0000000000000000000000000000000000000000000000000000000000000000L;
+                        }
                     }
                 }
             }
 
             transform(midCurlStateLow, midCurlStateHigh, curlScratchpadLow, curlScratchpadHigh);
         }
-
-        midCurlStateLow[offsetStart] = 0b1101101101101101101101101101101101101101101101101101101101101101L;
-        midCurlStateHigh[offsetStart] = 0b1011011011011011011011011011011011011011011011011011011011011011L;
-        midCurlStateLow[offsetStart + 1] = 0b1111000111111000111111000111111000111111000111111000111111000111L;
-        midCurlStateHigh[offsetStart + 1] = 0b1000111111000111111000111111000111111000111111000111111000111111L;
-        midCurlStateLow[offsetStart + 2] = 0b0111111111111111111000000000111111111111111111000000000111111111L;
-        midCurlStateHigh[offsetStart + 2] = 0b1111111111000000000111111111111111111000000000111111111111111111L;
-        midCurlStateLow[offsetStart + 3] = 0b1111111111000000000000000000000000000111111111111111111111111111L;
-        midCurlStateHigh[offsetStart + 3] = 0b0000000000111111111111111111111111111111111111111111111111111111L;
-
         return new Pair<>(midCurlStateLow, midCurlStateHigh);
     }
 
-    public void findChecksum(final int[] trits, final int length, int numberOfThreads) {
-        int remainder = trits.length % CURL_HASH_LENGTH - length;
-        Pair<long[], long[]> midCurlState = prepare(trits, remainder < 0 ? CURL_HASH_LENGTH + remainder : remainder);
+    private static void offset(final Pair<long[], long[]> trits) {
+        trits.low[0] = 0b1101101101101101101101101101101101101101101101101101101101101101L;
+        trits.hi[0] = 0b1011011011011011011011011011011011011011011011011011011011011011L;
+        trits.low[1] = 0b1111000111111000111111000111111000111111000111111000111111000111L;
+        trits.hi[1] = 0b1000111111000111111000111111000111111000111111000111111000111111L;
+        trits.low[2] = 0b0111111111111111111000000000111111111111111111000000000111111111L;
+        trits.hi[2] = 0b1111111111000000000111111111111111111000000000111111111111111111L;
+        trits.low[3] = 0b1111111111000000000000000000000000000111111111111111111111111111L;
+        trits.hi[3] = 0b0000000000111111111111111111111111111111111111111111111111111111L;
+    }
+
+    public int[] findChecksum(final int[] trits, final int length, int numberOfThreads) {
+        int rem = trits.length % Curl.HASH_LENGTH;
+        int end = trits.length / Curl.HASH_LENGTH;
+        if(rem != 0) {
+            end++;
+        }
+
+        Pair<long[], long[]> midCurlState = absorb(trits, end);
+        offset(midCurlState);
+        for(int i = 4; i < length; i++) {
+            midCurlState.hi[i] = HIGH_BITS;
+            midCurlState.low[i] = HIGH_BITS;
+        }
+
         numberOfThreads = getThreadCount(numberOfThreads);
 
         Thread[] workers = new Thread[numberOfThreads];
         AtomicInteger state = new AtomicInteger(RUNNING);
-        int[] checksum = new int[length];
+        AtomicInteger topIndex = new AtomicInteger(length);
+        int[] checksum = new int[Curl.HASH_LENGTH];
 
         while(numberOfThreads-- > 0) {
-            workers[numberOfThreads] = new Thread(spawnChecksumFinder(checksum, midCurlState, length - 4, numberOfThreads, syncObj, state));
+            workers[numberOfThreads] = new Thread(spawnChecksumFinder(checksum, midCurlState, topIndex, numberOfThreads, syncObj, state));
             workers[numberOfThreads].start();
         }
 
@@ -230,35 +244,40 @@ public class PearlDiver {
                 }
             }
         }
-        System.arraycopy(checksum, 0, trits, trits.length-length, length);
+        return checksum;
     }
 
-    private static Runnable spawnChecksumFinder(final int[] out, final Pair<long[], long[]> midCurlState, final int offset,
+    private static Runnable spawnChecksumFinder(final int[] out, final Pair<long[], long[]> midCurlState, final AtomicInteger checksumLength,
                                                 final int threadIndex, final Object syncObj, final AtomicInteger state) {
         return () -> {
+            int length = checksumLength.get();
+            int midLength = length/2;
             Pair<long[], long[]> midCurlStateCopy = new Pair<>(new long[CURL_STATE_LENGTH], new long[CURL_STATE_LENGTH]);
             Pair<long[], long[]> curlState = new Pair<>(new long[CURL_STATE_LENGTH], new long[CURL_STATE_LENGTH]);
             Pair<long[], long[]> curlScratchpad = new Pair<>(new long[CURL_STATE_LENGTH], new long[CURL_STATE_LENGTH]);
             System.arraycopy(midCurlState.low, 0, midCurlStateCopy.low, 0, CURL_STATE_LENGTH);
             System.arraycopy(midCurlState.hi, 0, midCurlStateCopy.hi, 0, CURL_STATE_LENGTH);
             for (int i = threadIndex; i-- > 0; ) {
-                increment(midCurlStateCopy.low, midCurlStateCopy.hi, CURL_HASH_LENGTH - offset, CURL_HASH_LENGTH - (offset / 2));
+                increment(midCurlStateCopy.low, midCurlStateCopy.hi, 4, midLength);
             }
 
             while (state.get() == RUNNING) {
-
-                increment(midCurlStateCopy.low, midCurlStateCopy.hi, CURL_HASH_LENGTH - offset / 2, CURL_HASH_LENGTH);
+                if(increment(midCurlStateCopy.low, midCurlStateCopy.hi, midLength, length) && length < CURL_HASH_LENGTH) {
+                    length += 3;
+                }
                 System.arraycopy(midCurlStateCopy.low, 0, curlState.low, 0, CURL_STATE_LENGTH);
                 System.arraycopy(midCurlStateCopy.hi, 0, curlState.hi, 0, CURL_STATE_LENGTH);
                 transform(curlState.low, curlState.hi, curlScratchpad.low, curlScratchpad.hi);
 
-                int checksumIndex = checkChecksum(midCurlStateCopy);
+                int checksumIndex = checkChecksum(midCurlStateCopy, Curl.HASH_LENGTH);
                 if(checksumIndex == -1) continue;
 
                 synchronized (syncObj) {
                     if (state.get() == RUNNING) {
                         state.set(COMPLETED);
-                        System.arraycopy(Converter.trits(midCurlStateCopy, checksumIndex), Curl.HASH_LENGTH - offset, out, 0, offset);
+                        System.out.println("FOUND ONE!");
+                        System.arraycopy(Converter.trits(midCurlStateCopy, checksumIndex), 0, out, 0, length);
+                        checksumLength.set(length);
                         syncObj.notifyAll();
                     }
                 }
@@ -277,20 +296,26 @@ public class PearlDiver {
      * @param midCurlState the low/hi state array
      * @return
      */
-    static int checkChecksum(Pair<long[], long[]> midCurlState) {
-        Pair<BigInteger[], BigInteger[]> checks = transpose(midCurlState, 0, Curl.HASH_LENGTH);
-        int length = checks.low.length;
+    static int checkChecksum(Pair<long[], long[]> midCurlState, final int length) {
+        Pair<BigInteger[], BigInteger[]> checks = transpose(midCurlState, 0, length);
         int out = -1;
-        for(int i = 0; i < length; i++) {
+        for(int i = 0; i < Long.SIZE; i++) {
             if(checks.low[i].bitCount() == checks.hi[i].bitCount()) {
-                out = length-i-1;
+                out = Long.SIZE-i-1;
+                byte[] hi, lo;
+                hi = new byte[CURL_HASH_LENGTH];
+                lo = new byte[CURL_HASH_LENGTH];
+                for(int j = 0; j < CURL_HASH_LENGTH; j++) {
+                    hi[j] = (byte) (checks.hi[i].testBit(j) ? 1 : 0);
+                    lo[j] = (byte) (checks.low[i].testBit(j) ? 1 : 0);
+                }
                 break;
             }
         }
         return out;
     }
 
-    private static long[] identity = new long[Long.BYTES*8];
+    private static long[] identity = new long[Long.SIZE];
     static {
         for(int i = 0; i < identity.length; i++) {
             identity[i] = 1<<i;
@@ -305,8 +330,8 @@ public class PearlDiver {
      * @return
      */
     static Pair<BigInteger[], BigInteger[]> transpose(Pair<long[], long[]> midCurlState, final int offset, final int length) {
-        Pair<BigInteger[], BigInteger[]> output = new Pair<>(new BigInteger[Long.BYTES*8], new BigInteger[Long.BYTES*8]);
-        for(int j = 0; j < Long.BYTES*8; j++) {
+        Pair<BigInteger[], BigInteger[]> output = new Pair<>(new BigInteger[Long.SIZE], new BigInteger[Long.SIZE]);
+        for(int j = 0; j < Long.SIZE; j++) {
             output.low[j] = new BigInteger(new byte[length]);
             output.hi[j] = new BigInteger(new byte[length]);
             for(int i = 0; i < length; i++) {
@@ -342,9 +367,9 @@ public class PearlDiver {
         }
     }
 
-    private static void increment(final long[] midCurlStateCopyLow, final long[] midCurlStateCopyHigh, final int fromIndex, final int toIndex) {
-        
-        for (int i = fromIndex; i < toIndex; i++) {
+    private static boolean increment(final long[] midCurlStateCopyLow, final long[] midCurlStateCopyHigh, final int fromIndex, final int toIndex) {
+        int i;
+        for (i = fromIndex; i < toIndex; i++) {
             if (midCurlStateCopyLow[i] == 0b0000000000000000000000000000000000000000000000000000000000000000L) {
                 midCurlStateCopyLow[i] = 0b1111111111111111111111111111111111111111111111111111111111111111L;
                 midCurlStateCopyHigh[i] = 0b0000000000000000000000000000000000000000000000000000000000000000L;
@@ -357,5 +382,6 @@ public class PearlDiver {
                 break;
             }
         }
+        return i == toIndex && midCurlStateCopyHigh[i-1] == 0;
     }
 }

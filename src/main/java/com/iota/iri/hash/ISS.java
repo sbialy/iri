@@ -202,10 +202,11 @@ public class ISS {
         return digest;
     }
 
-    public static int checkChecksum(final int[] trits) {
+    public static int checkChecksum(final int[] trits, final int[] checksum) {
         Curl curl = new Curl();
         int[] hash = new int[Curl.HASH_LENGTH];
         curl.absorb(trits, 0, trits.length);
+        curl.absorb(checksum, 0, checksum.length);
         curl.squeeze(hash, 0, hash.length);
         return Arrays.stream(hash).reduce((a,b) -> a+b).orElse(0);
     }
