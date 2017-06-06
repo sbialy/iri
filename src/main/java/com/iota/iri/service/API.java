@@ -29,6 +29,7 @@ import com.iota.iri.*;
 import com.iota.iri.controllers.*;
 import com.iota.iri.network.*;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xnio.channels.StreamSinkChannel;
@@ -340,13 +341,18 @@ public class API {
                     }
                 }
                 case "getMissingTransactions": {
-                    //TransactionRequester.instance().rescanTransactionsToRequest();
-                    synchronized (instance.transactionRequester) {
-                        List<String> missingTx = Arrays.stream(instance.transactionRequester.getRequestedTransactions())
-                                .map(Hash::toString)
-                                .collect(Collectors.toList());
-                        return GetTipsResponse.create(missingTx);
-                    }
+                    List<String> missingTx = Arrays.stream(ArrayUtils.addAll(TransactionViewModel.getMissingTransactions(instance.tangle).stream().toArray(Hash[]::new)))
+                            .map(Hash::toString)
+                            .collect(Collectors.toList());
+                    return GetTipsResponse.create(missingTx);
+
+//                    //TransactionRequester.instance().rescanTransactionsToRequest();
+//                    synchronized (instance.transactionRequester) {
+//                        List<String> missingTx = Arrays.stream(instance.transactionRequester.getRequestedTransactions())
+//                                .map(Hash::toString)
+//                                .collect(Collectors.toList());
+//                        return GetTipsResponse.create(missingTx);
+//                    }
                 }
                 default: {
                     AbstractResponse response = ixi.processCommand(command, request);

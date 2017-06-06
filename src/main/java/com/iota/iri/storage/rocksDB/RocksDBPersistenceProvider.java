@@ -187,8 +187,9 @@ public class RocksDBPersistenceProvider implements PersistenceProvider {
         Set<Indexable> indexables = new HashSet<>();
         for(iterator.seekToFirst(); iterator.isValid(); iterator.next()) {
             if (writer != null) {
-                Persistable p = (Persistable) model.newInstance();
-                p.read(iterator.value());
+                Persistable p = (Persistable) other.newInstance();
+                p.read(db.get(otherHandle, iterator.key()));
+                p=p;
             }
             if(db.get(otherHandle, iterator.key()) == null) {
                 indexables.add(new Hash(iterator.key()));
