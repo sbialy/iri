@@ -6,6 +6,7 @@ import com.iota.iri.storage.Indexable;
 import com.iota.iri.storage.Persistable;
 import com.iota.iri.storage.PersistenceProvider;
 import com.iota.iri.storage.Tangle;
+import com.iota.iri.utils.Converter;
 import com.iota.iri.utils.Pair;
 import org.apache.commons.lang3.SystemUtils;
 import org.rocksdb.*;
@@ -190,10 +191,18 @@ public class RocksDBPersistenceProvider implements PersistenceProvider {
                 Persistable p = (Persistable) other.newInstance();
                 p.read(db.get(otherHandle, iterator.key()));
                 p=p;
+                if (p.bytes() != null) {
+                    String trytes = Converter.trytes(TransactionViewModel.trits(p.bytes()));
+                    writer.println(trytes);  
+                }
             }
             if(db.get(otherHandle, iterator.key()) == null) {
                 indexables.add(new Hash(iterator.key()));
             }
+        }
+        if (writer != null) {
+            writer.flush();
+            writer.close();
         }
         iterator.close();
         return indexables;
