@@ -1,9 +1,11 @@
 package com.iota.iri.storage.rocksDB;
 
+import com.iota.iri.controllers.TransactionViewModel;
 import com.iota.iri.model.*;
 import com.iota.iri.storage.Indexable;
 import com.iota.iri.storage.Persistable;
 import com.iota.iri.storage.PersistenceProvider;
+import com.iota.iri.storage.Tangle;
 import com.iota.iri.utils.Pair;
 import org.apache.commons.lang3.SystemUtils;
 import org.rocksdb.*;
@@ -11,6 +13,9 @@ import org.rocksdb.util.SizeUnit;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.util.*;
@@ -167,11 +172,24 @@ public class RocksDBPersistenceProvider implements PersistenceProvider {
 
     @Override
     public Set<Indexable> keysWithMissingReferences(Class<?> model, Class<?> other) throws Exception {
+        String filename = "trytes.dump";
+        PrintWriter writer = null;
+        try {
+            writer = new PrintWriter(filename, "UTF-8");
+        } catch (FileNotFoundException e) {
+            log.error("File export failed",e);
+        } catch (UnsupportedEncodingException e) {
+            log.error("File export failed",e);
+        }
         ColumnFamilyHandle handle = classTreeMap.get().get(model);
         ColumnFamilyHandle otherHandle = classTreeMap.get().get(other);
         RocksIterator iterator = db.newIterator(handle);
         Set<Indexable> indexables = new HashSet<>();
         for(iterator.seekToFirst(); iterator.isValid(); iterator.next()) {
+            Hash hash = new Hash(iterator.key());
+            if (writer != null) {
+                TransactionViewModel t = TransactionViewModel.fromHash(hash);
+            }
             if(db.get(otherHandle, iterator.key()) == null) {
                 indexables.add(new Hash(iterator.key()));
             }
