@@ -186,9 +186,9 @@ public class RocksDBPersistenceProvider implements PersistenceProvider {
         RocksIterator iterator = db.newIterator(handle);
         Set<Indexable> indexables = new HashSet<>();
         for(iterator.seekToFirst(); iterator.isValid(); iterator.next()) {
-            Hash hash = new Hash(iterator.key());
             if (writer != null) {
-                TransactionViewModel t = TransactionViewModel.fromHash(hash);
+                Persistable p = (Persistable) model.newInstance();
+                p.read(iterator.value());
             }
             if(db.get(otherHandle, iterator.key()) == null) {
                 indexables.add(new Hash(iterator.key()));
