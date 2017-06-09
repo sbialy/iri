@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -389,9 +388,6 @@ public class API {
         final List<String> elements = new LinkedList<>();
         for (final String hash : hashes) {
             final TransactionViewModel transactionViewModel = TransactionViewModel.fromHash(instance.tangle, new Hash(hash));
-            if (transactionViewModel != null) {
-                elements.add(Converter.trytes(transactionViewModel.trits()));
-            }
         }
         return GetTrytesResponse.create(elements);
     }
@@ -452,7 +448,7 @@ public class API {
             if (!validTrytes(trytes, TRYTES_SIZE, ZERO_LENGTH_NOT_ALLOWED)) {
                 return false;
             }
-            final TransactionViewModel transactionViewModel = instance.transactionValidator.validate(Converter.trits(trytes),
+            final TransactionViewModel transactionViewModel = TransactionValidator.validate(Converter.trits(trytes),
                     instance.transactionValidator.getMinWeightMagnitude());
             if(transactionViewModel.store(instance.tangle)) {
                 transactionViewModel.setArrivalTime(System.currentTimeMillis() / 1000L);
@@ -588,9 +584,11 @@ public class API {
                 if (!validTrytes(tag,tag.length(), ZERO_LENGTH_ALLOWED)) {
                     return ErrorResponse.create("Invalid tag input");
                 }
-                while (tag.length() < Curl.HASH_LENGTH / Converter.NUMBER_OF_TRITS_IN_A_TRYTE) {
-                    tag += Converter.TRYTE_ALPHABET.charAt(0);
+                StringBuilder tagBuilder = new StringBuilder(tag);
+                while (tagBuilder.length() < Curl.HASH_LENGTH / Converter.NUMBER_OF_TRITS_IN_A_TRYTE) {
+                    tagBuilder.append(Converter.TRYTE_ALPHABET.charAt(0));
                 }
+                tag = tagBuilder.toString();
                 tagsTransactions.addAll(TagViewModel.load(instance.tangle, new Hash(tag)).getHashes());
             }
         }
@@ -632,7 +630,7 @@ public class API {
     public void broadcastTransactionStatement(final List<String> trytes2) {
         for (final String tryte : trytes2) {
             //validate PoW - throws exception if invalid
-            final TransactionViewModel transactionViewModel = instance.transactionValidator.validate(Converter.trits(tryte), instance.transactionValidator.getMinWeightMagnitude());
+            final TransactionViewModel transactionViewModel = TransactionValidator.validate(Converter.trits(tryte), instance.transactionValidator.getMinWeightMagnitude());
             //push first in line to broadcast
             transactionViewModel.weightMagnitude = Curl.HASH_LENGTH;
             instance.node.broadcast(transactionViewModel);
@@ -728,12 +726,12 @@ public class API {
                 System.arraycopy((prevTransaction == null ? branchTransaction : trunkTransaction).trits(), 0,
                         transactionTrits, TransactionViewModel.BRANCH_TRANSACTION_TRINARY_OFFSET,
                         TransactionViewModel.BRANCH_TRANSACTION_TRINARY_SIZE);
-                if (!pearlDiver.search(transactionTrits, minWeightMagnitude, 0)) {
+                if (!pearlDiver.search(transactionTrits, minWeightMagnitude, 1)) {
                     transactionViewModels.clear();
                     break;
                 }
                 //validate PoW - throws exception if invalid
-                final TransactionViewModel transactionViewModel = instance.transactionValidator.validate(transactionTrits, instance.transactionValidator.getMinWeightMagnitude());
+                final TransactionViewModel transactionViewModel = TransactionValidator.validate(transactionTrits, instance.transactionValidator.getMinWeightMagnitude());
 
                 transactionViewModels.add(transactionViewModel);
                 prevTransaction = transactionViewModel.getHash();
